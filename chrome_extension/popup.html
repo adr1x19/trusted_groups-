@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { width: 300px; padding: 20px; font-family: sans-serif; background: #111; color: #fff; }
+        input { width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: none; background: #222; color: #fff; }
+        button { width: 100%; padding: 10px; background: #C8F04A; color: #111; border: none; font-weight: bold; cursor: pointer; border-radius: 6px; }
+        #status { margin-top: 15px; font-size: 12px; color: #888; }
+    </style>
+</head>
+<body>
+    <h3 style="margin-top:0; color:#C8F04A;">Trusted Groups</h3>
+    
+    <label style="font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase;">Trusted Groups Cart ID</label>
+    <input type="text" id="cartId" placeholder="Paste Trusted Groups ID here">
+
+    <label style="font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase;">Blinkit Active Cart ID</label>
+    <input type="text" id="blinkitCartId" placeholder="e.g. 4027198054">
+    
+    <button id="injectBtn">INJECT CART</button>
+    <div id="status">Scanning Blinkit session...</div>
+    <script src="popup.js"></script>
+</body>
+</html>

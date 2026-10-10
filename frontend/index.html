@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trusted Groups</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F6F5F1;
+            --surface: #111111;
+            --accent: #C8F04A;
+            --text-main: #111111;
+            --text-muted: #666666;
+            --border: rgba(0,0,0,0.1);
+            --border-light: rgba(255,255,255,0.1);
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text-main); 
+            margin: 0; padding: 0;
+            min-height: 100vh;
+            display: flex; justify-content: center;
+        }
+
+        .container {
+            width: 100%; max-width: 800px;
+            padding: 40px 20px; box-sizing: border-box;
+        }
+        
+        .hidden { display: none !important; }
+
+        /* TOAST */
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--surface); color: var(--accent); 
+            padding: 12px 24px; border-radius: 8px; font-family: 'JetBrains Mono', monospace;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 9999; font-size: 14px;
+            transition: opacity 0.3s, transform 0.3s; opacity: 0; pointer-events: none;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(10px); }
+
+        /* TYPOGRAPHY */
+        .top-brand { font-weight: 600; font-size: 14px; letter-spacing: -0.5px; margin-bottom: 60px; text-align: center; }
+        .hero-title { font-size: 3.5em; font-weight: 800; line-height: 1; letter-spacing: -2px; margin: 0 0 10px 0; text-align: center; text-transform: uppercase; }
+        .hero-subtitle { font-size: 16px; color: var(--text-muted); text-align: center; margin-bottom: 50px; }
+
+        /* FORMS & INPUTS */
+        .input-group { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; padding: 15px 20px; background: #ffffff; }
+        .input-group label { display: block; font-size: 11px; font-weight: 800; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .input-group input { width: 100%; border: none; font-size: 18px; font-family: 'Inter', sans-serif; outline: none; background: transparent; }
+        
+        .btn-primary { 
+            width: 100%; background: var(--surface); color: #fff; border: none; 
+            padding: 20px; border-radius: 12px; font-size: 14px; font-weight: 600; 
+            letter-spacing: 1px; cursor: pointer; transition: transform 0.1s; font-family: 'JetBrains Mono', monospace;
+            text-transform: lowercase;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-accent { background: var(--accent); color: var(--surface); }
+
+        .join-section { margin-top: 60px; text-align: center; }
+        .join-section p { font-size: 14px; color: var(--text-muted); margin-bottom: 15px; }
+        .code-input-wrapper { display: flex; gap: 10px; max-width: 300px; margin: 0 auto; }
+        .code-input-wrapper input { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; font-family: 'JetBrains Mono'; font-size: 18px; outline: none; text-transform: uppercase; }
+        .code-input-wrapper button { background: var(--surface); color: #fff; border: none; border-radius: 8px; padding: 0 20px; font-family: 'JetBrains Mono'; cursor: pointer; }
+
+        /* LOBBY UI */
+        .lobby-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .lobby-header button { background: transparent; border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-family: 'JetBrains Mono'; font-size: 12px; }
+        .room-code { font-family: 'JetBrains Mono'; font-size: 14px; background: #fff; padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); }
+        .live-status { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono'; font-size: 11px; font-weight: 800; color: var(--surface); background: var(--accent); padding: 6px 12px; border-radius: 20px; box-shadow: 0 0 15px rgba(200, 240, 74, 0.4); text-transform: uppercase; }
+        .dot { width: 8px; height: 8px; background: var(--surface); border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .lobby-title { font-size: 2.5em; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; margin-bottom: 30px; }
+
+        .participants-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 30px; }
+        .participant { background: #fff; border: 1px solid var(--border); padding: 12px 20px; border-radius: 30px; display: flex; flex-direction: column; min-width: max-content; }
+        .participant-name { font-weight: 600; font-size: 14px; }
+        .participant-role { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; font-family: 'JetBrains Mono'; }
+
+        /* CART SURFACE */
+        .cart-surface { background: var(--surface); border-radius: 24px; padding: 30px; color: #fff; margin-bottom: 30px; }
+        .cart-header { display: flex; justify-content: space-between; align-items: center; font-family: 'JetBrains Mono'; font-size: 14px; color: var(--accent); margin-bottom: 25px; border-bottom: 1px solid var(--border-light); padding-bottom: 15px; }
+        
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border-light); }
+        .cart-item:last-child { border-bottom: none; }
+        .item-details { display: flex; gap: 15px; align-items: center; }
+        .item-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+        .item-owner { font-size: 12px; color: rgba(255,255,255,0.5); }
+        .item-price { font-family: 'JetBrains Mono'; color: var(--accent); }
+        .remove-btn { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.5); padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; text-transform: lowercase; }
+
+        .cart-footer { margin-top: 30px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 20px; }
+        .total-label { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+        .total-price { font-size: 32px; font-family: 'JetBrains Mono'; font-weight: 700; color: var(--accent); }
+
+        /* SEARCH SECTION */
+        .search-box { position: relative; margin-bottom: 20px; }
+        .search-box input { width: 100%; box-sizing: border-box; padding: 20px; border-radius: 16px; border: 1px solid var(--surface); background: var(--surface); color: #fff; font-size: 16px; outline: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .search-box input::placeholder { color: rgba(255,255,255,0.4); }
+        .search-results { background: var(--surface); color: #fff; border: 1px solid var(--surface); border-radius: 16px; overflow: hidden; margin-bottom: 30px; }
+        .search-result-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-light); cursor: pointer; transition: background 0.1s; }
+        .search-result-item:hover { background: rgba(255,255,255,0.05); }
+        .search-result-item:last-child { border-bottom: none; }
+
+        /* MODALS */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1000; display: flex; justify-content: center; align-items: center; }
+        .modal-content { background: var(--bg); padding: 40px; border-radius: 24px; max-width: 500px; width: 90%; position: relative; }
+        .modal-title { font-family: 'JetBrains Mono'; color: var(--accent); background: var(--surface); padding: 5px 10px; border-radius: 4px; display: inline-block; font-size: 12px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="toast">Message</div>
+
+    <!-- MODALS -->
+    <div id="inviteModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-title">LOBBY CREATED</div>
+            <h2 style="margin:0 0 15px 0; font-size: 24px; font-weight:800; letter-spacing:-1px;">EVERYONE'S READY ✔</h2>
+            <p style="color:var(--text-muted); font-size:14px; line-height:1.5; margin-bottom:25px;">
+                Share this link with your friends to build the cart. Your host will paste this final cart into Blinkit.
+            </p>
+            <div style="background:#fff; border:1px solid var(--border); padding:15px; border-radius:12px; font-family:'JetBrains Mono'; font-size:12px; margin-bottom:20px; overflow-wrap:anywhere;" id="modalLinkDisplay">
+                http://link
+            </div>
+            <button class="btn-primary" style="background:transparent; color:var(--text-main); border:1px solid var(--border);" onclick="document.getElementById('inviteModal').classList.add('hidden')">[ COPY LINK ]</button>
+        </div>
+    </div>
+
+    <div id="checkoutModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-title">CHECKOUT LIST</div>
+            <h2 style="margin:0 0 15px 0; font-size: 24px; font-weight:800; letter-spacing:-1px;">CART CONSOLIDATED</h2>
+            <div id="checkoutListText" style="background:#fff; border:1px solid var(--border); padding:20px; border-radius:12px; font-family:'JetBrains Mono'; font-size:12px; margin-bottom:20px; white-space:pre-wrap; max-height:300px; overflow-y:auto; line-height:1.6;">
+            </div>
+            <button class="btn-primary btn-accent" style="margin-bottom: 10px;" onclick="copyCheckoutList()">[ COPY MASTER LIST ]</button>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border);">
+                <div style="font-family:'JetBrains Mono'; font-size:10px; color:var(--surface); background:var(--accent); padding:4px 8px; border-radius:4px; display:inline-block; margin-bottom:10px; font-weight: bold;">> CHROME EXTENSION INJECTION</div>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 10px 0;">Open the Trusted Groups Chrome Extension on Blinkit and paste this ID:</p>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="fullCartIdInput" readonly style="flex:1; border:1px solid var(--border); background: var(--bg); border-radius:8px; padding:10px; font-family:'JetBrains Mono'; font-size:11px; outline:none; color: var(--text-muted);">
+                    <button class="btn-primary btn-accent" style="width:auto; padding:10px 20px; text-transform: lowercase;" onclick="copyFullCartId()">[ COPY ID ]</button>
+                </div>
+            </div>
+
+            <button class="btn-primary" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); margin-top:20px;" onclick="document.getElementById('checkoutModal').classList.add('hidden')">BACK TO LOBBY</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Screen 1: Landing -->
+        <div id="landingScreen">
+            <div class="top-brand">trusted groups</div>
+            <h1 class="hero-title">START A<br>GROUP CART</h1>
+            <p class="hero-subtitle">Build a grocery order together.</p>
+
+            <div class="input-group">
+                <label>YOUR NAME</label>
+                <input type="text" id="hostName" placeholder="e.g. Aadi">
+            </div>
+            <div class="input-group">
+                <label>BITS EMAIL</label>
+                <input type="text" id="hostEmail" placeholder="f202xxxx@hyderabad.bits-pilani.ac.in">
+            </div>
+            
+            <button class="btn-primary" id="hostOtpBtn" onclick="requestOtp('hostEmail', 'hostOtpDiv', 'hostOtpBtn')">[ GET OTP → ]</button>
+            
+            <div id="hostOtpDiv" class="hidden" style="margin-top:20px;">
+                <div class="input-group" style="border-color: var(--accent);">
+                    <label style="color: var(--accent);">ENTER OTP</label>
+                    <input type="text" id="hostOtp" placeholder="6-digit code">
+                </div>
+                <button class="btn-primary btn-accent" onclick="verifyAndCreate()">[ VERIFY & CREATE ]</button>
+            </div>
+
+        </div>
+
+        <!-- Screen 2: Join Form -->
+        <div id="joinFormScreen" class="hidden">
+            <div class="top-brand">trusted groups</div>
+            <h1 class="hero-title">JOIN CART</h1>
+            <p class="hero-subtitle" id="joinRoomLabel">Room: A7K2</p>
+
+            <div class="input-group">
+                <label>YOUR NAME</label>
+                <input type="text" id="joinName" placeholder="e.g. Rahul">
+            </div>
+            <div class="input-group">
+                <label>BITS EMAIL</label>
+                <input type="text" id="joinEmail" placeholder="f202xxxx@hyderabad.bits-pilani.ac.in">
+            </div>
+            
+            <button class="btn-primary" id="joinOtpBtn" onclick="requestOtp('joinEmail', 'joinOtpDiv', 'joinOtpBtn')">[ GET OTP → ]</button>
+            
+            <div id="joinOtpDiv" class="hidden" style="margin-top:20px;">
+                <div class="input-group" style="border-color: var(--accent);">
+                    <label style="color: var(--accent);">ENTER OTP</label>
+                    <input type="text" id="joinOtp" placeholder="6-digit code">
+                </div>
+                <button class="btn-primary btn-accent" onclick="verifyAndJoin()">[ VERIFY & JOIN ]</button>
+            </div>
+            <button class="btn-primary" style="background: transparent; color: var(--text-muted); margin-top: 20px;" onclick="location.reload()">← BACK</button>
+        </div>
+
+        <!-- Screen 3: Active Lobby -->
+        <div id="activeCartScreen" class="hidden">
+            <div class="lobby-header">
+                <button onclick="location.search=''; location.reload();">← leave lobby</button>
+                <div class="room-code">CART #<span id="displayCode"></span></div>
+                <div class="live-status"><span class="dot"></span> LIVE</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--surface); padding-bottom: 15px; margin-bottom: 25px;">
+                <div class="lobby-title" style="border: none; padding: 0; margin: 0;">WEEKEND CART</div>
+                <button onclick="copyInviteLink()" style="background: transparent; border: 1px dashed var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: var(--text-main); font-weight: 600;">[ COPY INVITE LINK ]</button>
+            </div>
+
+            <div class="participants-row" id="participantsDiv">
+                <!-- Populated via JS -->
+            </div>
+
+            <div class="cart-surface">
+                <div class="cart-header"><span id="itemCount">0</span> ITEMS</div>
+                <div id="cartContents">
+                    <!-- Populated via JS -->
+                </div>
+                <div class="cart-footer">
+                    <div class="total-label">Grand Total</div>
+                    <div class="total-price" id="totalPrice">₹0</div>
+                </div>
+                <button class="btn-primary btn-accent" style="margin-top: 25px;" onclick="checkoutCart()">[ CHECKOUT LOBBY ]</button>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search Blinkit for groceries..." onkeyup="debounceSearch()">
+            </div>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+    </div>
+<script>
+    const API_URL = "http://127.0.0.1:8000/cart";
+    let currentCartID = "";
+    let isHost = false;
+    let currentUserEmail = "";
+    let currentUserName = "";
+    
+    // --- TOAST NOTIFICATIONS ---
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // --- TIMER LOGIC ---
+    let timerInterval;
+    function startTimer() {
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            const clock = document.getElementById('timerClock');
+            if(!clock) return;
+        }, 1000);
+    }
+
+    function showJoinForm(cartId = null) {
+        if(!cartId) {
+            const code = document.getElementById('joinCode').value;
+            if(code.length < 4) { showToast("Invalid code"); return; }
+            showToast("Use invite link for full join. Code entry mocked.");
+            return;
+        }
+        document.getElementById('landingScreen').classList.add('hidden');
+        document.getElementById('joinFormScreen').classList.remove('hidden');
+        document.getElementById('joinRoomLabel').innerText = "Room: " + cartId.substring(0,4).toUpperCase();
+    }
+
+    // --- OTP LOGIC ---
+    async function requestOtp(emailInputId, nextDivId, btnId) {
+        const email = document.getElementById(emailInputId).value;
+        if(!email.endsWith("@hyderabad.bits-pilani.ac.in")) { 
+            showToast("Only BITS Pilani Hyderabad emails are allowed!"); 
+            return; 
+        }
+        
+        document.getElementById(btnId).innerText = "[ SENDING... ]";
+        const res = await fetch(`${API_URL}/request-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email })
+        });
+        if(res.ok) {
+            showToast("OTP sent to your email!");
+            document.getElementById(nextDivId).classList.remove("hidden");
+            document.getElementById(btnId).innerText = "[ RESEND OTP ]";
+            document.getElementById(btnId).style.background = "transparent";
+            document.getElementById(btnId).style.color = "var(--text-muted)";
+            document.getElementById(btnId).style.border = "1px solid var(--border)";
+        } else { 
+            showToast("Error sending OTP"); 
+            document.getElementById(btnId).innerText = "[ TRY AGAIN ]";
+        }
+    }
+
+    async function verifyOtpAPI(email, otp) {
+        const res = await fetch(`${API_URL}/verify-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email, otp: otp })
+        });
+        return res.ok;
+    }
+
+    // --- CREATE / JOIN LOGIC ---
+    async function verifyAndCreate() {
+        currentUserEmail = document.getElementById("hostEmail").value;
+        currentUserName = document.getElementById("hostName").value || "Host";
+        const otp = document.getElementById("hostOtp").value;
+
+        if(!await verifyOtpAPI(currentUserEmail, otp)) { showToast("Invalid OTP"); return; }
+
+        const res = await fetch(`${API_URL}/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: currentUserEmail, name: currentUserName, timer: 3600 })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            currentCartID = data.cartID;
+            showDashboard();
+            
+            const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?cartID=" + currentCartID;
+            document.getElementById("modalLinkDisplay").innerText = newurl;
+            document.getElementById("inviteModal").classList.remove("hidden");
+            startPolling();
+            startTimer();
+            
+        } else { showToast("Creation failed"); }
+    }
+
+    async function verifyAndJoin() {
+        currentUserEmail = document.getElementById("joinEmail").value;
+        currentUserName = document.getElementById("joinName").value || "Guest";
+        const otp = document.getElementById("joinOtp").value;
+
+        if(!await verifyOtpAPI(currentUserEmail, otp)) { showToast("Invalid OTP"); return; }
+
+        const res = await fetch(`${API_URL}/${currentCartID}/join`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: currentUserEmail, name: currentUserName })
+        });
+
+        if (res.ok) { 
+            showToast(`Joined as ${currentUserName}`);
+            showDashboard(); 
+            startPolling();
+        } else { showToast("Error joining cart"); }
+    }
+
+    function showDashboard() {
+        document.getElementById('landingScreen').classList.add('hidden');
+        document.getElementById('joinFormScreen').classList.add('hidden');
+        document.getElementById('activeCartScreen').classList.remove('hidden');
+        document.getElementById('displayCode').innerText = currentCartID.substring(0,4).toUpperCase();
+    }
+
+    function copyInviteLink() {
+        const url = window.location.protocol + "//" + window.location.host + window.location.pathname + '?join=' + currentCartID;
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(url);
+            showToast("Invite link copied!");
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = url;
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast("Invite link copied!");
+            } catch (err) { }
+            document.body.removeChild(textArea);
+        }
+    }
+
+    // --- URL PARSING ---
+    window.onload = () => {
+        const params = new URLSearchParams(window.location.search);
+        const joinId = params.get('join') || params.get('cartID');
+        if(joinId) {
+            currentCartID = joinId;
+            showJoinForm(joinId);
+        }
+    };
+
+    // --- MULTIPLAYER POLLING ---
+    let pollInterval;
+    function startPolling() {
+        fetchCart();
+        pollInterval = setInterval(fetchCart, 3000);
+    }
+
+    // --- SEARCH LOGIC ---
+    let searchTimeout = null;
+    let currentSearchOffset = 0;
+    let currentSearchQuery = "";
+    const SEARCH_LIMIT = 5;
+
+    function debounceSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => searchProducts(false), 500);
+    }
+
+    async function searchProducts(isPagination = false) {
+        const query = document.getElementById('searchInput').value;
+        const resultsDiv = document.getElementById('searchResults');
+        
+        if(!query) { resultsDiv.innerHTML = ""; return; }
+        
+        if(!isPagination) {
+            currentSearchOffset = 0;
+            currentSearchQuery = query;
+            resultsDiv.innerHTML = `<div style="padding: 10px; color: var(--text-muted); font-family: 'JetBrains Mono'; font-size:12px;">Searching...</div>`;
+        }
+
+        const res = await fetch(`${API_URL}/search?q=${currentSearchQuery}&offset=${currentSearchOffset}&limit=${SEARCH_LIMIT}`);
+
+        if(res.ok) {
+            const data = await res.json();
+            resultsDiv.innerHTML = "";
+
+            data.results.forEach(product => {
+                const item = document.createElement('div');
+                item.className = "search-result-item";
+                item.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <span style="font-size:20px;">+</span>
+                        <span style="font-weight:600; font-size:14px;">${product.name}</span>
+                    </div>
+                    <div style="font-family:'JetBrains Mono'; color:var(--accent);">₹${product.price}</div>
+                `;
+                item.onclick = () => {
+                    addToCart(product);
+                    // Search stays open to allow adding multiple items!
+                };
+                resultsDiv.appendChild(item);
+            });
+
+            const paginationControls = document.createElement('div');
+            paginationControls.style = "display: flex; justify-content: space-between; align-items: center; padding: 10px 5px; margin-top: 5px; border-top: 1px solid var(--border-light);";
+            
+            const currentPage = Math.floor(currentSearchOffset / SEARCH_LIMIT) + 1;
+            let controlsHtml = ``;
+            if (currentSearchOffset > 0) {
+                controlsHtml += `<button onclick="paginate(-1)" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-family:'JetBrains Mono'; font-size:11px;">← PREV</button>`;
+            } else {
+                controlsHtml += `<div style="width: 50px;"></div>`;
+            }
+
+            controlsHtml += `<span style="font-family:'JetBrains Mono'; font-size:11px; color:var(--text-muted);">PAGE ${currentPage}</span>`;
+
+            if (data.results.length === SEARCH_LIMIT && (currentSearchOffset + SEARCH_LIMIT) < data.total) {
+                controlsHtml += `<button onclick="paginate(1)" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-family:'JetBrains Mono'; font-size:11px;">NEXT →</button>`;
+            } else {
+                controlsHtml += `<div style="width: 50px;"></div>`;
+            }
+            
+            paginationControls.innerHTML = controlsHtml;
+            resultsDiv.appendChild(paginationControls);
+
+        } else {
+            if(!isPagination) resultsDiv.innerHTML = `<div style="padding: 10px; color: #ef4444;">Failed to load.</div>`;
+        }
+    }
+
+    function paginate(direction) {
+        currentSearchOffset += (direction * SEARCH_LIMIT);
+        searchProducts(true);
+    }
+
+    // --- CART LOGIC ---
+    async function addToCart(product) {
+        const parsedPrice = parseInt(product.price.toString().replace(/\D/g, '')) || 0;
+        showToast(`Added ${product.name}`);
+
+        const payload = {
+            email: currentUserEmail,
+            name: currentUserName,
+            itemToBeAdded: {
+                groceryObject: {
+                    productId: product.product_id,
+                    name: product.name,
+                    image: product.image_url,
+                    price: parsedPrice
+                },
+                quantity: 1
+            }
+        };
+
+        await fetch(`${API_URL}/${currentCartID}/upsert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        fetchCart(); 
+    }
+
+    async function deleteFromCart(productId, name, image, price) {
+        const payload = {
+            email: currentUserEmail,
+            name: currentUserName,
+            itemToBeAdded: {
+                groceryObject: {
+                    productId: productId,
+                    name: name,
+                    image: image,
+                    price: price
+                },
+                quantity: 1
+            }
+        };
+
+        await fetch(`${API_URL}/${currentCartID}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        fetchCart();
+    }
+
+    let previousItemCount = -1;
+
+    async function fetchCart() {
+        if(!currentCartID) return;
+        const res = await fetch(`${API_URL}/${currentCartID}`);
+        if(!res.ok) return;
+        const cartData = await res.json();
+        
+        const participantsDiv = document.getElementById('participantsDiv');
+        participantsDiv.innerHTML = "";
+        
+        for (const [email, name] of Object.entries(cartData.participants)) {
+            const role = email === cartData.hostEmail ? "HOST" : "JOINED";
+            participantsDiv.innerHTML += `
+                <div class="participant">
+                    <div class="participant-name">👤 ${name}</div>
+                    <div class="participant-role">${role}</div>
+                </div>
+            `;
+        }
+
+        const cartDiv = document.getElementById('cartContents');
+        cartDiv.innerHTML = "";
+        
+        let totalItems = 0;
+        let totalPrice = 0;
+
+        for (const [email, itemsObj] of Object.entries(cartData.userItems)) {
+            const userName = cartData.participants[email] || email;
+            
+            for (const [productId, itemData] of Object.entries(itemsObj)) {
+                totalItems += itemData.quantity;
+                totalPrice += (itemData.groceryObject.price * itemData.quantity);
+                
+                const safeName = itemData.groceryObject.name.replace(/'/g, "\\'");
+                const safeImage = itemData.groceryObject.image ? itemData.groceryObject.image.replace(/'/g, "\\'") : '';
+                const isOwner = email === currentUserEmail;
+                
+                cartDiv.innerHTML += `
+                    <div class="cart-item">
+                        <div class="item-details">
+                            <div>
+                                <div class="item-name">${itemData.groceryObject.name} <span style="color:var(--text-muted); font-weight:normal;">×${itemData.quantity}</span></div>
+                                <div class="item-owner">Added by ${userName}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap: 15px;">
+                            <div class="item-price">₹${itemData.groceryObject.price * itemData.quantity}</div>
+                            ${isOwner ? `<button onclick="deleteFromCart('${productId}', '${safeName}', '${safeImage}', ${itemData.groceryObject.price})" class="remove-btn">Remove</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        if (totalItems === 0) {
+            cartDiv.innerHTML = `<div style="padding: 20px 0; color: var(--text-muted); font-style: italic;">Cart is empty. Search below to add items.</div>`;
+        }
+
+        document.getElementById('itemCount').innerText = totalItems;
+        document.getElementById('totalPrice').innerText = `₹${totalPrice}`;
+        
+        if (previousItemCount !== -1 && totalItems > previousItemCount) {}
+        previousItemCount = totalItems;
+    }
+
+    let checkoutMasterText = "";
+
+    async function checkoutCart() {
+        document.getElementById('checkoutModal').classList.remove('hidden');
+        document.getElementById('checkoutListText').innerText = "Generating master list...";
+        
+        const res = await fetch(`${API_URL}/${currentCartID}/checkout`);
+        if(res.ok) {
+            const data = await res.json();
+            
+            checkoutMasterText = `TRUSTED GROUPS - CART #${currentCartID.substring(0,4).toUpperCase()}\n`;
+            checkoutMasterText += `Total Items: ${data.totalItems} | Grand Total: ₹${data.grandTotal}\n`;
+            checkoutMasterText += `------------------------------------\n`;
+            
+            data.consolidatedItems.forEach(item => {
+                checkoutMasterText += `${item.quantity}x ${item.name} (₹${item.total})\n`;
+            });
+            
+            checkoutMasterText += `------------------------------------\n`;
+            checkoutMasterText += `Powered by trusted-groups`;
+            
+            document.getElementById('checkoutListText').innerText = checkoutMasterText;
+            document.getElementById('fullCartIdInput').value = currentCartID;
+        } else {
+            document.getElementById('checkoutListText').innerText = "Failed to load checkout list.";
+        }
+    }
+
+    function copyCheckoutList() {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(checkoutMasterText);
+            showToast("Master list copied!");
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = checkoutMasterText;
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast("Master list copied!");
+            } catch (err) {
+                showToast("Failed to copy");
+            }
+            document.body.removeChild(textArea);
+        }
+    }
+
+    function copyFullCartId() {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(currentCartID);
+            showToast("Cart ID copied for extension!");
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = currentCartID;
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast("Cart ID copied for extension!");
+            } catch (err) {
+                showToast("Failed to copy");
+            }
+            document.body.removeChild(textArea);
+        }
+    }
+</script>
